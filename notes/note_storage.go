@@ -1,6 +1,7 @@
 package notes
 
 import (
+	"database/sql"
 	"sync"
 	"notes/notes/internal/mysql"
 )
@@ -144,7 +145,19 @@ func (s *NotesStorage) Save(note *Note) error {
 		return err
 	}
 
+	oldTags, err := s.getTagsByNoteId(note.Id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	err = s.linkTagsToNote(tx, note)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = s.deleteUnusedTags(tx, oldTags)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -153,6 +166,19 @@ func (s *NotesStorage) Save(note *Note) error {
 	return tx.Commit()
 }
 
+func (s *NotesStorage) getTagsByNoteId(id uint) ([]*Tag, error) {
+
+	links, err := s.linksTable.SelectByNoteIds(id)
+	if err != nil {
+		return nil, err
+	}
+
+	tags := make([]*Tag, 0, len(links))
+	for _, l := range links {
+		tags = append(tags, &Tag{Id: l.TagId})
+	}
+	return tags, nil
+}
 
 func (s *NotesStorage) Delete(id uint) error {
 	note, err := s.GetNote(id)
@@ -172,18 +198,8 @@ func (s *NotesStorage) Delete(id uint) error {
 	}
 
 	if err == nil {
-        for _, tag := range note.Tags {
-            cnt, err := s.linksTable.CountByTagId(tx, tag.Id)
-            if err == nil && cnt == 0 {
-                err = s.tagsCrud.DeleteTx(tx, tag.Id)
-            }
-
-            if err != nil {
-                break
-            }
-        }
+		err = s.deleteUnusedTags(tx, note.Tags)
     }
-
 
 	if err != nil {
 		return tx.Rollback()
@@ -192,6 +208,21 @@ func (s *NotesStorage) Delete(id uint) error {
 	return tx.Commit()
 }
 
+
+func (s *NotesStorage) deleteUnusedTags(tx *sql.Tx, tags []*Tag) error {
+	for _, tag := range tags {
+		cnt, err := s.linksTable.CountByTagId(tx, tag.Id)
+		if err == nil && cnt == 0 {
+			err = s.tagsCrud.DeleteTx(tx, tag.Id)
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 func (s *NotesStorage) saveNote(tx mysql.Execer, note *Note) error {
 	noteRow := &mysql.NoteRow{note.Id, note.Body}

@@ -53,14 +53,6 @@ func NewTagSelect() *TagSelect {
 	}
 }
 
-
-//func (t *TagSelect) GetById(id uint) (*TagRow, error) {
-//	e := &TagRow{}
-//	row := t.db.QueryRow(sqlTagSelectOne, id)
-//	err := row.Scan(&e.Id, &e.Name)
-//	return e, err
-//}
-
 func (t *TagSelect) GetAll() ([]*TagRow, error) {
 	return t.rows("SELECT * FROM tags")
 }
@@ -80,23 +72,6 @@ func (t *TagSelect) GetTagsByIds(tagIds ...uint) ([]*TagRow, error) {
 	}
 
 	return t.rows(sql, ids...)
-
-	//rows, err := t.db.Query(sql, ids...)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//defer rows.Close()
-	//
-	//var list []*TagRow
-	//for rows.Next() {
-	//	e := &TagRow{}
-	//
-	//	if err = rows.Scan(&e.Id, &e.Name); err != nil {
-	//		return nil, err
-	//	}
-	//	list = append(list, e)
-	//}
-	//return list, err
 }
 
 func (t *TagSelect) rows(sql string, binds ...interface{}) ([]*TagRow, error) {
