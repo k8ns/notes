@@ -52,9 +52,9 @@ func (t *NoteSelect) buildQuery(lastId uint, tagIds []uint) (string, []interface
         query = "SELECT * FROM notes"
         if lastId > 0 {
             bind = append(bind, lastId)
-            query += " WHERE id > ?"
+            query += " WHERE id < ?"
         }
-        query += " ORDER BY id DESC LIMIT 25"
+        query += " ORDER BY id DESC LIMIT 10"
     } else {
 
         buf := &bytes.Buffer{}
@@ -79,11 +79,11 @@ func (t *NoteSelect) buildQuery(lastId uint, tagIds []uint) (string, []interface
         buf.WriteString(where)
 
         if lastId > 0 {
-            buf.WriteString(" AND n.id > ?")
+            buf.WriteString(" AND n.id < ?")
             bind = append(bind, lastId)
         }
 
-        buf.WriteString(" ORDER BY id DESC LIMIT 25")
+        buf.WriteString(" ORDER BY id DESC LIMIT 10")
 
         query = buf.String()
     }

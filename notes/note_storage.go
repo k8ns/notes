@@ -2,8 +2,8 @@ package notes
 
 import (
 	"database/sql"
-	"sync"
 	"notes/notes/internal/mysql"
+	"sync"
 )
 
 var (
