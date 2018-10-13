@@ -15,3 +15,14 @@ type Note struct {
 func (n *Note) AddTag(t *Tag) {
 	n.Tags = append(n.Tags, t)
 }
+
+type NoteInterface interface {
+	GetId() uint
+	GetBody() string
+	GetTags() []TagInterface
+}
+
+type TagInterface interface {
+	GetId() uint
+	GetName() string
+}
