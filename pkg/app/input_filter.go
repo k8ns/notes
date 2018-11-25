@@ -9,17 +9,11 @@ import (
     . "notes/pkg/notes"
 )
 
-type InputErr struct {
-    errs map[string]error
-}
-
-func (e *InputErr) Errors() map[string]error {
-	return e.errs
-}
+type InputErr map[string]error
 
 func (e *InputErr) Error() string {
 	b := new(bytes.Buffer)
-	for key, value := range e.errs {
+	for key, value := range *e {
 		fmt.Fprintf(b, "%s=\"%s\"\n", key, value)
 	}
 	return b.String()
@@ -36,12 +30,11 @@ type NoteInputFilter struct {
 }
 
 func (i *NoteInputFilter) IsValid(n *Note) (bool, error) {
-
     for _, f := range i.filters {
         f(n)
     }
 
-    errs := make(map[string]error)
+    errs := make(InputErr)
     for _, v := range i.validators {
         if field, err := v(n); err != nil {
             errs[field] = err
@@ -49,7 +42,7 @@ func (i *NoteInputFilter) IsValid(n *Note) (bool, error) {
     }
 
     if len(errs) != 0 {
-        return false, &InputErr{errs}
+        return false, &errs
     }
     return true, nil
 }

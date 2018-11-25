@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"notes/pkg/app"
@@ -35,6 +34,10 @@ func InitRoutes(engine *gin.Engine) {
 	engine.PUT("/notes/:id", updateNote) // (200 || 204)  || 404 || 409 || 500
 	engine.DELETE("/notes/:id", deleteNote) // 204 || 404 || 405 H:Allow: GET || 503
 	engine.OPTIONS("/notes/:id", ok)
+}
+
+func ok(c *gin.Context) {
+	c.Status(http.StatusOK)
 }
 
 func tagsList(c *gin.Context) {
@@ -97,7 +100,9 @@ func createNote(c *gin.Context) {
 	if err != nil {
 		switch err.(type) {
 		case *app.InputErr:
-			writeErrResponse(c, err, http.StatusConflict)
+			inputErrs := err.(*app.InputErr)
+			errs := map[string]error(*inputErrs)
+			writeMapErrResponse(c, errs, http.StatusConflict)
 		default:
 			writeErrResponse(c, err, http.StatusInternalServerError)
 		}
@@ -130,7 +135,9 @@ func updateNote(c *gin.Context) {
 		case app.NotExistsErr:
 			writeErrResponse(c, err, http.StatusBadRequest)
 		case *app.InputErr:
-			writeErrResponse(c, err, http.StatusConflict)
+			inputErrs := err.(*app.InputErr)
+			errs := map[string]error(*inputErrs)
+			writeMapErrResponse(c, errs, http.StatusConflict)
 		default:
 			writeErrResponse(c, err, http.StatusInternalServerError)
 		}
@@ -164,10 +171,16 @@ func writeOkResponse(c *gin.Context, data interface{}, status int) {
 
 func writeErrResponse(c *gin.Context, err error, status int) {
 	c.JSON(status, gin.H{
-		"error": fmt.Sprintf("%+v", err),
+		"error": err.Error(),
 	})
 }
 
-func ok(c *gin.Context) {
-	c.Status(http.StatusOK)
+func writeMapErrResponse(c *gin.Context, errs map[string]error, status int) {
+	m := make(map[string]string, len(errs))
+	for key, err := range errs {
+		m[key] = err.Error()
+	}
+	c.JSON(status, gin.H{
+		"error": m,
+	})
 }
