@@ -7,6 +7,74 @@ import (
     "strconv"
 )
 
+type NoteRow struct {
+	Id uint
+	Body string
+}
+
+func (e *NoteRow) EmptyCopy() Row {
+	return &TagRow{}
+}
+
+func (e *NoteRow) GetId() uint {
+	return e.Id
+}
+
+func (e *NoteRow) SetId(id uint) {
+	e.Id = id
+}
+
+func (e *NoteRow) InsertArgs() []interface{} {
+	return []interface{}{e.Body}
+}
+
+func (e *NoteRow) UpdateArgs() []interface{} {
+	return []interface{}{e.Body, e.Id}
+}
+
+
+type NotesTable struct {
+	notesSelect *NoteSelect
+	notesCrud *Crud
+}
+
+func NewNotesTable() *NotesTable {
+	return &NotesTable{
+		notesSelect: NewNoteSelect(),
+		notesCrud: NewNotesCrud(),
+	}
+}
+
+func (t *NotesTable) SaveTx(e Execer, r Row) error {
+	return t.notesCrud.SaveTx(e, r)
+}
+
+func (t *NotesTable) Exists(id uint) bool {
+	return t.notesSelect.Exists(id)
+}
+
+func (t *NotesTable) GetById(id uint) (*NoteRow, error) {
+	return t.notesSelect.GetById(id)
+}
+
+func (t *NotesTable) GetList(lastId uint, tagIds []uint) ([]*NoteRow, error) {
+	return t.notesSelect.GetList(lastId, tagIds)
+}
+
+func (t *NotesTable) DeleteTx(c Execer, id uint) error {
+	return t.notesCrud.DeleteTx(c, id)
+}
+
+func NewNotesCrud() *Crud {
+	return &Crud{
+		db: GetPersistentDB(),
+		prototype: &NoteRow{},
+		sqlInsert: "INSERT INTO notes(body) VALUES(?)",
+		sqlUpdate: "UPDATE notes SET body = ? WHERE id = ?",
+		sqlDelete: "DELETE FROM notes WHERE id = ?",
+	}
+}
+
 type NoteSelect struct {
 	db        *sql.DB
 }

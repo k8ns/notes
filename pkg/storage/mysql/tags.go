@@ -30,6 +30,39 @@ func (e *TagRow) UpdateArgs() []interface{} {
 	return []interface{}{e.Name, e.Id}
 }
 
+
+type TagsTable struct {
+	tagSelect *TagSelect
+	tagCrud *Crud
+}
+
+func NewTagsTable() *TagsTable {
+	return &TagsTable{
+		tagSelect: NewTagSelect(),
+		tagCrud: NewTagsCrud(),
+	}
+}
+
+func (t *TagsTable) GetTagsByIds(tagIds ...uint) ([]*TagRow, error) {
+	return t.tagSelect.GetTagsByIds(tagIds...)
+}
+
+func (t *TagsTable) GetAll() ([]*TagRow, error) {
+	return t.tagSelect.GetAll()
+}
+
+func (t *TagsTable) DeleteTx(c Execer, id uint) error {
+	return t.tagCrud.DeleteTx(c, id)
+}
+
+func (t *TagsTable) GetTagByName(name string) (*TagRow, error) {
+	return t.tagSelect.GetTagByName(name)
+}
+
+func (t *TagsTable) InsertTx(e Execer, r Row) error {
+	return t.tagCrud.InsertTx(e, r)
+}
+
 func NewTagsCrud() *Crud {
 	return &Crud{
 		db: GetPersistentDB(),

@@ -1,10 +1,12 @@
-package notes
+package app
 
 import (
 	"errors"
 	"strings"
 	"testing"
 	// "github.com/stretchr/testyfy/mock"
+
+	. "notes/pkg/notes"
 )
 
 
@@ -34,8 +36,8 @@ func TestValidation(t *testing.T) {
 		}},
 	}
 
-	note1Err := filter.IsValid(note1)
-	if len(note1Err) > 0 {
+	test1, _ := filter.IsValid(note1)
+	if !test1 {
 		t.Error("note 1 is invalid, must be valid")
 	}
 
@@ -43,15 +45,12 @@ func TestValidation(t *testing.T) {
 		t.Error("filter didn't work")
 	}
 
-	note2Err := filter.IsValid(note2)
-	if len(note2Err) != 1 {
+	test2, _ := filter.IsValid(note2)
+	if test2 {
 		t.Error("note 2 is valid, must be invalid")
 	}
 
 	if note2.Body != "invalid-body" {
 		t.Error("filter didn't work")
 	}
-
-
 }
-

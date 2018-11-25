@@ -54,23 +54,6 @@ func (t *NoteTagLinkTable) SelectByNoteIds(noteIds ...uint) ([]*NoteTagLinkRow, 
 	return list, nil
 }
 
-//func (t *NoteTagLinkTable) SelectByTagsIds(tagIds ...uint) ([]*NoteTagLinkRow, error) {
-//	rows, err := t.db.Query(sqlLinkByTagsIds, tagIds)
-//	if err != nil {
-//		return nil, err
-//	}
-//	defer rows.Close()
-//
-//	list := make([]*NoteTagLinkRow, 0)
-//	for rows.Next() {
-//		e := &NoteTagLinkRow{}
-//		if err = rows.Scan(&e.NoteId, &e.TagId); err != nil {
-//			return nil, err
-//		}
-//		list = append(list, e)
-//	}
-//	return list, nil
-//}
 
 func (t *NoteTagLinkTable) CountByTagId(e Queryer, tagId uint) (int, error) {
 	cnt := 0

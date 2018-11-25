@@ -1,9 +1,29 @@
-package notes
+package app
 
 import (
-    "errors"
-    "sync"
+	"bytes"
+	"errors"
+	"fmt"
+	"sync"
+
+    . "notes/pkg/notes"
 )
+
+type InputErr struct {
+    errs map[string]error
+}
+
+func (e *InputErr) Errors() map[string]error {
+	return e.errs
+}
+
+func (e *InputErr) Error() string {
+	b := new(bytes.Buffer)
+	for key, value := range e.errs {
+		fmt.Fprintf(b, "%s=\"%s\"\n", key, value)
+	}
+	return b.String()
+}
 
 var (
     notesInputFilter *NoteInputFilter
@@ -15,21 +35,23 @@ type NoteInputFilter struct {
     validators []func(n *Note) (string, error)
 }
 
-func (i *NoteInputFilter) IsValid(n *Note) map[string]error {
+func (i *NoteInputFilter) IsValid(n *Note) (bool, error) {
 
     for _, f := range i.filters {
         f(n)
     }
 
     errs := make(map[string]error)
-
     for _, v := range i.validators {
         if field, err := v(n); err != nil {
             errs[field] = err
         }
     }
 
-    return errs
+    if len(errs) != 0 {
+        return false, &InputErr{errs}
+    }
+    return true, nil
 }
 
 func NewNoteInputFilter() *NoteInputFilter {

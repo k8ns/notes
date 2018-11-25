@@ -1,44 +1,33 @@
-package notes
+package mysql
 
 import (
 	"database/sql"
-	"notes/notes/internal/mysql"
-	"sync"
-)
+	. "notes/pkg/notes"
 
-var (
-	notesStorage *NotesStorage
-	notesStorageOnce sync.Once
+	"notes/pkg/storage"
 )
 
 
-type NotesStorage struct {
-	notesSelect *mysql.NoteSelect
-	notesCrud *mysql.Crud
-	linksTable *mysql.NoteTagLinkTable
-	tagsSelect *mysql.TagSelect
-	tagsCrud *mysql.Crud
+
+
+type Storage struct {
+	notesTable *NotesTable
+	linksTable *NoteTagLinkTable
+	tagsTable *TagsTable
 }
 
-func NewNotesStorage() *NotesStorage {
-	return &NotesStorage{
-		notesSelect: mysql.NewNoteSelect(),
-		notesCrud: mysql.NewNotesCrud(),
-		linksTable: mysql.NewNoteTagLinkTable(),
-		tagsSelect: mysql.NewTagSelect(),
-		tagsCrud: mysql.NewTagsCrud(),
+func NewStorage() storage.NotesStorage {
+	return &Storage{
+		notesTable: NewNotesTable(),
+		linksTable: NewNoteTagLinkTable(),
+		tagsTable: NewTagsTable(),
 	}
 }
 
-func GetNotesStorage() *NotesStorage {
-	notesStorageOnce.Do(func(){
-		notesStorage = NewNotesStorage()
-	})
-	return notesStorage
-}
 
-func (s *NotesStorage) GetNote(id uint) (*Note, error) {
-	noteRow, err := s.notesSelect.GetById(id)
+
+func (s *Storage) GetNote(id uint) (*Note, error) {
+	noteRow, err := s.notesTable.GetById(id)
 	if err != nil  {
 		return nil, err
 	}
@@ -63,9 +52,9 @@ func (s *NotesStorage) GetNote(id uint) (*Note, error) {
 	return note, err
 }
 
-func (s *NotesStorage) GetNotes(lastId uint, tagIds []uint) ([]*Note, error) {
+func (s *Storage) GetNotes(lastId uint, tagIds []uint) ([]*Note, error) {
 
-	noteRows, err := s.notesSelect.GetList(lastId, tagIds)
+	noteRows, err := s.notesTable.GetList(lastId, tagIds)
 	if err != nil {
 		return nil, err
 	}
@@ -101,14 +90,14 @@ func (s *NotesStorage) GetNotes(lastId uint, tagIds []uint) ([]*Note, error) {
 	return notes, nil
 }
 
-func (s *NotesStorage) buildTagsMapFromLinks(links []*mysql.NoteTagLinkRow) (map[uint]*Tag, error) {
+func (s *Storage) buildTagsMapFromLinks(links []*NoteTagLinkRow) (map[uint]*Tag, error) {
 
 	tagIds := make([]uint, 0, len(links))
 	for _, link := range links {
 		tagIds = append(tagIds, link.TagId)
 	}
 
-	tagsRows, err := s.tagsSelect.GetTagsByIds(tagIds...)
+	tagsRows, err := s.tagsTable.GetTagsByIds(tagIds...)
 	tagsM := make(map[uint]*Tag)
 	if err != nil {
 		return nil, err
@@ -121,13 +110,13 @@ func (s *NotesStorage) buildTagsMapFromLinks(links []*mysql.NoteTagLinkRow) (map
 }
 
 
-func (s *NotesStorage) Exists(id uint) bool {
-	return s.notesSelect.Exists(id)
+func (s *Storage) Exists(id uint) bool {
+	return s.notesTable.Exists(id)
 }
 
-func (s *NotesStorage) Save(note *Note) error {
+func (s *Storage) Save(note *Note) error {
 
-	db := mysql.GetPersistentDB()
+	db := GetPersistentDB()
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -166,33 +155,21 @@ func (s *NotesStorage) Save(note *Note) error {
 	return tx.Commit()
 }
 
-func (s *NotesStorage) getTagsByNoteId(id uint) ([]*Tag, error) {
 
-	links, err := s.linksTable.SelectByNoteIds(id)
-	if err != nil {
-		return nil, err
-	}
 
-	tags := make([]*Tag, 0, len(links))
-	for _, l := range links {
-		tags = append(tags, &Tag{Id: l.TagId})
-	}
-	return tags, nil
-}
-
-func (s *NotesStorage) Delete(id uint) error {
+func (s *Storage) Delete(id uint) error {
 	note, err := s.GetNote(id)
 	if err != nil {
 		return err
 	}
 
-	db := mysql.GetPersistentDB()
+	db := GetPersistentDB()
 	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
 
-	err = s.notesCrud.DeleteTx(tx, id)
+	err = s.notesTable.DeleteTx(tx, id)
 	if err == nil {
 		err = s.linksTable.DeleteByNoteIdTx(tx, id)
 	}
@@ -208,12 +185,37 @@ func (s *NotesStorage) Delete(id uint) error {
 	return tx.Commit()
 }
 
+func (s *Storage) GetTags() ([]*Tag, error) {
+	tagsRows, err := s.tagsTable.GetAll()
+	if err != nil {
+		return nil, err
+	}
+	list := make([]*Tag, 0, len(tagsRows))
+	for _, r := range tagsRows {
+		list = append(list, &Tag{r.Id, r.Name})
+	}
+	return list, err
+}
 
-func (s *NotesStorage) deleteUnusedTags(tx *sql.Tx, tags []*Tag) error {
+func (s *Storage) getTagsByNoteId(id uint) ([]*Tag, error) {
+
+	links, err := s.linksTable.SelectByNoteIds(id)
+	if err != nil {
+		return nil, err
+	}
+
+	tags := make([]*Tag, 0, len(links))
+	for _, l := range links {
+		tags = append(tags, &Tag{Id: l.TagId})
+	}
+	return tags, nil
+}
+
+func (s *Storage) deleteUnusedTags(tx *sql.Tx, tags []*Tag) error {
 	for _, tag := range tags {
 		cnt, err := s.linksTable.CountByTagId(tx, tag.Id)
 		if err == nil && cnt == 0 {
-			err = s.tagsCrud.DeleteTx(tx, tag.Id)
+			err = s.tagsTable.DeleteTx(tx, tag.Id)
 		}
 
 		if err != nil {
@@ -224,9 +226,9 @@ func (s *NotesStorage) deleteUnusedTags(tx *sql.Tx, tags []*Tag) error {
 	return nil
 }
 
-func (s *NotesStorage) saveNote(tx mysql.Execer, note *Note) error {
-	noteRow := &mysql.NoteRow{note.Id, note.Body}
-	err := s.notesCrud.SaveTx(tx, noteRow)
+func (s *Storage) saveNote(tx Execer, note *Note) error {
+	noteRow := &NoteRow{note.Id, note.Body}
+	err := s.notesTable.SaveTx(tx, noteRow)
 	if err != nil {
 		return err
 	}
@@ -235,7 +237,7 @@ func (s *NotesStorage) saveNote(tx mysql.Execer, note *Note) error {
 }
 
 
-func (s *NotesStorage) saveTags(tx mysql.Execer, note *Note) (err error) {
+func (s *Storage) saveTags(tx Execer, note *Note) (err error) {
 	for _, tag := range note.Tags {
 		tag.Id, err = s.insertTagIfNotExists(tx, tag)
 		if err != nil {
@@ -246,26 +248,26 @@ func (s *NotesStorage) saveTags(tx mysql.Execer, note *Note) (err error) {
 }
 
 
-func (s *NotesStorage) insertTagIfNotExists(tx mysql.Execer, tag *Tag) (uint, error) {
-	tagRow, err := s.tagsSelect.GetTagByName(tag.Name)
+func (s *Storage) insertTagIfNotExists(tx Execer, tag *Tag) (uint, error) {
+	tagRow, err := s.tagsTable.GetTagByName(tag.Name)
 	if err == nil {
 		return tagRow.Id, nil
 	}
 
-	tagRow = &mysql.TagRow{Id: tag.Id, Name: tag.Name}
-	err = s.tagsCrud.InsertTx(tx, tagRow)
+	tagRow = &TagRow{Id: tag.Id, Name: tag.Name}
+	err = s.tagsTable.InsertTx(tx, tagRow)
 	return tagRow.Id, err
 }
 
 
-func (s *NotesStorage) linkTagsToNote(tx mysql.Execer, note *Note) error {
+func (s *Storage) linkTagsToNote(tx Execer, note *Note) error {
 	err := s.linksTable.DeleteByNoteId(note.Id)
 	if err != nil {
 		return err
 	}
 
 	for _, tag := range note.Tags {
-		err = s.linksTable.InsertTx(tx, &mysql.NoteTagLinkRow{note.Id, tag.Id})
+		err = s.linksTable.InsertTx(tx, &NoteTagLinkRow{note.Id, tag.Id})
 		if err != nil {
 			return err
 		}
@@ -273,14 +275,3 @@ func (s *NotesStorage) linkTagsToNote(tx mysql.Execer, note *Note) error {
 	return nil
 }
 
-func (s *NotesStorage) AllTags() ([]*Tag, error) {
-	tagsRows, err := s.tagsSelect.GetAll()
-	if err != nil {
-		return nil, err
-	}
-	list := make([]*Tag, 0, len(tagsRows))
-	for _, r := range tagsRows {
-		list = append(list, &Tag{r.Id, r.Name})
-	}
-	return list, err
-}
