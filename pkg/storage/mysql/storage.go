@@ -24,7 +24,11 @@ func NewStorage() storage.NotesStorage {
 	}
 }
 
+func (s *Storage) Search(search string) ([]*Note, error) {
+	//sql := `SELECT * FROM notes WHERE MATCH (body) AGAINST (?)`
 
+	return nil, nil
+}
 
 func (s *Storage) GetNote(id uint) (*Note, error) {
 	noteRow, err := s.notesTable.GetById(id)
