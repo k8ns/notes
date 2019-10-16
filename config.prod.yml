@@ -5,8 +5,8 @@ app:
   version: 1.0.0
 db:
   server: notes_db
-  username: from secret
-  password: from secret
+  username: {secret_db_username}
+  password: {secret_db_password}
   name: notes
 http:
   enabled: true

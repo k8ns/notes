@@ -21,7 +21,7 @@ func main() {
 		panic(err)
 	}
 
-	//db.InitConnection(cfg.Db)
+	db.InitConnection(cfg.Db)
 
 	err = http.Run(cfg.Http, cfg.App)
 	if err != nil {
