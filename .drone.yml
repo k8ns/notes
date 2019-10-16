@@ -19,9 +19,6 @@ steps:
   - name: build-image
     image: docker
     commands:
-      - env
-      - echo $DB_USER
-      - echo $DB_PASSWORD
       - docker build -t notes_api -f Dockerfile .
       - docker tag notes_api notes_api:latest
       - docker tag notes_api notes_api:${DRONE_BUILD_NUMBER}
@@ -39,6 +36,9 @@ steps:
       DB_PASSWORD:
         from_secret: db_password
     commands:
+      - env
+      - echo $DB_USER
+      - echo $DB_PASSWORD
       - docker stop notes_api || true && docker rm notes_api || true
       - docker run -d --name notes_api --network notes --log-driver=loki --log-opt loki-url="http://172.19.0.12:3100/api/prom/push" notes_api:latest
       - docker network connect web notes_api --alias notes_api
