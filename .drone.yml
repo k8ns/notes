@@ -1,0 +1,54 @@
+kind: pipeline
+name: default
+
+steps:
+  - name: test
+    image: golang
+    environment:
+      GOOS: linux
+      GOARCH: amd64
+      CGO_ENABLED: 0
+      GO111MODULE: on
+    commands:
+      - go test ./pkg/...
+      - go build -o build/notes_api -v cmd/main.go
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+
+
+  - name: build-image
+    image: docker
+    commands:
+      - docker build -t notes_api -f Dockerfile .
+      - docker tag notes_api notes_api:latest
+      - docker tag notes_api notes_api:${DRONE_BUILD_NUMBER}
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+    when:
+      branch: master
+
+
+  - name: deploy
+    image: docker
+    environment:
+      DB_USER:
+        from_secret: db_user
+      DB_PASSWORD:
+        from_secret: db_password
+    commands:
+      - echo $DB_USER
+      - docker stop notes_api || true && docker rm notes_api || true
+      - docker run -d --name notes_api --network notes --log-driver=loki --log-opt loki-url="http://172.19.0.12:3100/api/prom/push" notes_api:latest
+      - docker network connect web notes_api --alias notes_api
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+    when:
+      branch: master
+
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock

@@ -1,11 +1,12 @@
-project:
-  name: Notes API
+app:
+  project_name: Notes API
   code: notes-api
   env: dev
+  version: 1.0.0
 db:
-  server: mysql_server
-  username: root
-  password: dbpsswrd
+  server: notes_db
+  username: from secret
+  password: from secret
   name: notes
 http:
   enabled: true
