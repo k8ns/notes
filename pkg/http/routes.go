@@ -11,7 +11,6 @@ import (
 
 func InitRoutes(engine *gin.Engine) {
 
-	engine.GET("/", welcome)
 	engine.POST("/sign-in", signIn)
 
 	authorized := engine.Group("/")
@@ -26,14 +25,20 @@ func InitRoutes(engine *gin.Engine) {
 	}
 }
 
-func welcome(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"data": map[string]string{
-			"service": "Notes API",
-			"version": "1.0.0",
-		},
+func InitWelcome(engine *gin.Engine, project *app.Config) {
+	engine.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"data": map[string]string{
+				"projectName": project.ProjectName,
+				"code": project.Code,
+				"version": project.Version,
+				"env": project.Env,
+			},
+		})
 	})
 }
+
+
 
 func signIn(c *gin.Context) {
 	creds := &auth.Credential{}

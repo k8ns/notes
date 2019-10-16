@@ -13,16 +13,16 @@ var (
 	persistentDBOnce sync.Once
 )
 
-type Config interface {
-	DbServer() string
-	DbUsername() string
-	DbPassword() string
-	DbName() string
+type Config struct {
+	Server string
+	Username string
+	Password string
+	Name string
 }
 
-func newDb(cfg Config) *sql.DB {
+func newDb(cfg *Config) *sql.DB {
 	dataSource := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true",
-		cfg.DbUsername(), cfg.DbPassword(), cfg.DbServer(), cfg.DbName())
+		cfg.Username, cfg.Password, cfg.Server, cfg.Name)
 	db, err := sql.Open("mysql", dataSource)
 	if err != nil {
 		panic(err)
@@ -33,7 +33,7 @@ func newDb(cfg Config) *sql.DB {
 	return db
 }
 
-func InitConnection(cfg Config) {
+func InitConnection(cfg *Config) {
 	persistentDBOnce.Do(func() {
 		persistentDB = newDb(cfg)
 	})
