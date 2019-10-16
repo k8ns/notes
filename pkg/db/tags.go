@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"github.com/pkg/errors"
 	"strings"
 )
 
@@ -111,7 +112,7 @@ func (t *TagSelect) GetTagsByIds(tagIds ...uint) ([]*TagRow, error) {
 func (t *TagSelect) rows(sql string, binds ...interface{}) ([]*TagRow, error) {
 	rows, err := t.db.Query(sql, binds...)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	defer rows.Close()
 
@@ -120,16 +121,19 @@ func (t *TagSelect) rows(sql string, binds ...interface{}) ([]*TagRow, error) {
 		e := &TagRow{}
 
 		if err = rows.Scan(&e.Id, &e.UserId, &e.Name); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		list = append(list, e)
 	}
-	return list, err
+	return list, nil
 }
 
 func (t *TagSelect) GetTagByName(name string) (*TagRow, error) {
-	e := &TagRow{}
+	r := &TagRow{}
 	row := t.db.QueryRow("SELECT * FROM tags WHERE `name` = ?", name)
-	err := row.Scan(&e.Id, &e.Name)
-	return e, err
+	err := row.Scan(&r.Id, &r.UserId, &r.Name)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return r, err
 }

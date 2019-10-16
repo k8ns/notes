@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"github.com/pkg/errors"
 	"strings"
 )
 
@@ -39,7 +40,7 @@ func (t *NoteTagLinkTable) SelectByNoteIds(noteIds ...uint) ([]*NoteTagLinkRow, 
 
 	rows, err := t.db.Query(sql, ids...)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	defer rows.Close()
 
@@ -47,7 +48,7 @@ func (t *NoteTagLinkTable) SelectByNoteIds(noteIds ...uint) ([]*NoteTagLinkRow, 
 	for rows.Next() {
 		e := &NoteTagLinkRow{}
 		if err = rows.Scan(&e.NoteId, &e.TagId); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		list = append(list, e)
 	}
@@ -58,13 +59,19 @@ func (t *NoteTagLinkTable) SelectByNoteIds(noteIds ...uint) ([]*NoteTagLinkRow, 
 func (t *NoteTagLinkTable) CountByTagId(e Queryer, tagId uint) (int, error) {
 	cnt := 0
 	err := e.QueryRow("SELECT COUNT(note_id) as cnt FROM notes_tags WHERE tag_id = ?", tagId).Scan(&cnt)
-	return cnt, err
+	if err != nil {
+		return 0, errors.WithStack(err)
+	}
+	return cnt, nil
 }
 
 func (t *NoteTagLinkTable) DeleteByTagId(tagId uint) error {
 	res, err := t.db.Exec("DELETE FROM notes_tags WHERE tag_id = ?", tagId)
 	if err == nil {
 		_, err = res.RowsAffected()
+	}
+	if err != nil {
+		return errors.WithStack(err)
 	}
 	return err
 }
@@ -78,10 +85,16 @@ func (t *NoteTagLinkTable) DeleteByNoteIdTx(e Execer, noteId uint) error {
 	if err == nil {
 		_, err = res.RowsAffected()
 	}
-	return err
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }
 
 func (t *NoteTagLinkTable) InsertTx(e Execer, r *NoteTagLinkRow) error {
 	_, err := e.Exec("INSERT INTO notes_tags(note_id, tag_id) VALUES(?, ?)", r.NoteId, r.TagId)
-	return err
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }

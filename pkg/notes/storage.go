@@ -110,7 +110,10 @@ func (s *Storage) buildTagsMapFromLinks(links []*db.NoteTagLinkRow) (map[uint]*T
 }
 
 
-func (s *Storage) Exists(userId, id uint) bool {
+func (s *Storage) Exists(userId, id uint) (bool, error) {
+	if id <= 0 {
+		return false, nil
+	}
 	return s.notesTable.Exists(userId, id)
 }
 

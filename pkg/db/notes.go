@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"github.com/pkg/errors"
 	"strconv"
 )
 
@@ -50,7 +51,7 @@ func (t *NotesTable) SaveTx(e Execer, r Row) error {
 	return t.notesCrud.SaveTx(e, r)
 }
 
-func (t *NotesTable) Exists(userId, id uint) bool {
+func (t *NotesTable) Exists(userId, id uint) (bool, error) {
 	return t.notesSelect.Exists(userId, id)
 }
 
@@ -90,7 +91,7 @@ func (t *NoteSelect) GetList(userId uint, lastId uint, tagIds []uint) ([]*NoteRo
 	q, b := t.buildQuery(userId, lastId, tagIds)
 	rows, err := t.db.Query(q, b...)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	defer rows.Close()
 
@@ -98,7 +99,7 @@ func (t *NoteSelect) GetList(userId uint, lastId uint, tagIds []uint) ([]*NoteRo
 	for rows.Next() {
 		e := &NoteRow{}
 		if err := rows.Scan(&e.Id, &e.UserId, &e.Body); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		list = append(list, e)
 	}
@@ -114,8 +115,6 @@ func (t *NoteSelect) buildQuery(userId uint, lastId uint, tagIds []uint) (string
 	for k, v := range tagIds {
 		tids[k] = v
 	}
-
-
 
 	if len(tids) == 0 {
         query = "SELECT * FROM notes"
@@ -163,14 +162,20 @@ func (t *NoteSelect) buildQuery(userId uint, lastId uint, tagIds []uint) (string
 }
 
 func (t *NoteSelect) GetById(userId, id uint) (*NoteRow, error) {
-	e := &NoteRow{}
+	r := &NoteRow{}
 	row := t.db.QueryRow("SELECT * FROM notes WHERE id = ? AND user_id = ?", id, userId)
-	err := row.Scan(&e.Id, &e.Body)
-	return e, err
+	err := row.Scan(&r.Id, &r.UserId, &r.Body)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return r, nil
 }
 
-func (t *NoteSelect) Exists(userId, id uint) bool {
+func (t *NoteSelect) Exists(userId, id uint) (bool, error) {
 	var iid int
-	t.db.QueryRow("SELECT id FROM notes WHERE id = ? AND user_id = ?", id, userId).Scan(&iid)
-	return iid > 0
+	err := t.db.QueryRow("SELECT id FROM notes WHERE id = ? AND user_id = ?", id, userId).Scan(&iid)
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+	return iid > 0, nil
 }

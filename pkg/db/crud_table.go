@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"github.com/pkg/errors"
 )
 
 type Row interface {
@@ -41,12 +42,12 @@ func (t *Crud) Insert(r Row) error {
 func (t *Crud) InsertTx(e Execer, r Row) error {
 	res, err := e.Exec(t.sqlInsert, r.InsertArgs()...)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	r.SetId(uint(id))
 
@@ -62,7 +63,10 @@ func (t *Crud) UpdateTx(e Execer, r Row) error {
 	if err == nil {
 		_, err = res.RowsAffected()
 	}
-	return err
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }
 
 func (t *Crud) Delete(id uint) error {
@@ -74,5 +78,8 @@ func (t *Crud) DeleteTx(e Execer, id uint) error {
 	if err == nil {
 		_, err = res.RowsAffected()
 	}
-	return err
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }

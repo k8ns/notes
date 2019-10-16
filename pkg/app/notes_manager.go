@@ -68,8 +68,12 @@ func (m *NotesManager) GetNote(ctx context.Context, id uint) (*notes.Note, error
 		return nil, err
 	}
 
-	if !m.storage.Exists(u.Id, id) {
-		return nil, NotFoundErr(errors.New("not found"))
+	exists, err := m.storage.Exists(u.Id, id)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, NotExistsErr(errors.New("not exists"))
 	}
 
 	return m.storage.GetNote(u.Id, id)
@@ -82,7 +86,11 @@ func (m *NotesManager) Save(ctx context.Context, n *notes.Note) error {
 		return nil
 	}
 
-	if n.Id > 0 && !m.storage.Exists(u.Id, n.Id) {
+	exists, err := m.storage.Exists(u.Id, n.Id)
+	if err != nil {
+		return err
+	}
+	if n.Id > 0 && !exists {
 		return NotExistsErr(errors.New("not exists"))
 	}
 
@@ -103,7 +111,11 @@ func (m *NotesManager) Delete(ctx context.Context, id uint) error {
 		return nil
 	}
 
-	if !m.storage.Exists(u.Id, id) {
+	exists, err := m.storage.Exists(u.Id, id)
+	if err != nil {
+		return err
+	}
+	if !exists {
 		return NotExistsErr(errors.New("not exists"))
 	}
 
