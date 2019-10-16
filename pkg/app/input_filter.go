@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-    . "notes/pkg/notes"
+    . "github.com/ksopin/notes/pkg/notes"
 )
 
 type InputErr map[string]error

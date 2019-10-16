@@ -1,47 +1,58 @@
-package main
+package http
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/ksopin/notes/pkg/app"
+	"github.com/ksopin/notes/pkg/auth"
+	"github.com/ksopin/notes/pkg/notes"
 	"net/http"
-	"notes/pkg/app"
-	"notes/pkg/notes"
-
 	"strconv"
 )
 
-func main() {
-	r := gin.Default()
-
-	r.Use(addHeaders)
-	InitRoutes(r)
-	r.Run(":80")
-}
-
-func addHeaders(c *gin.Context) {
-	c.Header("Access-Control-Allow-Origin", "*")
-	c.Header("Access-Control-Allow-Headers", "Content-Type")
-	c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-}
-
-
 func InitRoutes(engine *gin.Engine) {
-	engine.GET("/tags", tagsList) // 200 || 404 || 500
-	engine.GET("/notes", notesList) // 200 || 404 || 500
-	engine.POST("/notes", createNote) // 201 H:Location || 400 || 500
-	engine.OPTIONS("/notes", ok)
 
-	engine.GET("/notes/:id", getNote)
-	engine.PUT("/notes/:id", updateNote) // (200 || 204)  || 404 || 409 || 500
-	engine.DELETE("/notes/:id", deleteNote) // 204 || 404 || 405 H:Allow: GET || 503
-	engine.OPTIONS("/notes/:id", ok)
+	engine.GET("/", welcome)
+	engine.POST("/sign-in", signIn)
+
+	authorized := engine.Group("/")
+	authorized.Use(authMiddleware)
+	{
+		authorized.GET("/tags", tagsList) // 200 || 404 || 500
+		authorized.GET("/notes", notesList) // 200 || 404 || 500
+		authorized.POST("/notes", createNote) // 201 H:Location || 400 || 500
+		authorized.GET("/notes/:id", getNote)
+		authorized.PUT("/notes/:id", updateNote) // (200 || 204)  || 404 || 409 || 500
+		authorized.DELETE("/notes/:id", deleteNote) // 204 || 404 || 405 H:Allow: GET || 503
+	}
 }
 
-func ok(c *gin.Context) {
-	c.Status(http.StatusOK)
+func welcome(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"data": map[string]string{
+			"service": "Notes API",
+			"version": "1.0.0",
+		},
+	})
+}
+
+func signIn(c *gin.Context) {
+	creds := &auth.Credential{}
+	err := c.BindJSON(creds)
+	if err != nil {
+		writeErrResponse(c, err, http.StatusBadRequest)
+		return
+	}
+
+	token, err := app.GetAuthService().Auth(c, creds)
+	if err != nil {
+		writeErrResponse(c, err, http.StatusForbidden)
+		return
+	}
+	writeOkResponse(c, token, http.StatusOK)
 }
 
 func tagsList(c *gin.Context) {
-	list, err := app.GetNotesManager().GetTags()
+	list, err := app.GetNotesManager().GetTags(c)
 	if err != nil {
 		writeErrResponse(c, err, http.StatusBadRequest)
 		return
@@ -64,7 +75,7 @@ func notesList(c *gin.Context) {
 		}
 	}
 
-	list, err := app.GetNotesManager().GetNotes(uint(lastId), tagIds)
+	list, err := app.GetNotesManager().GetNotes(c, uint(lastId), tagIds)
 	if err != nil {
 		writeErrResponse(c, err, http.StatusInternalServerError)
 		return
@@ -75,7 +86,7 @@ func notesList(c *gin.Context) {
 
 func getNote(c *gin.Context) {
 	paramId, _ := strconv.Atoi(c.Param("id"))
-	note, err := app.GetNotesManager().GetNote(uint(paramId))
+	note, err := app.GetNotesManager().GetNote(c, uint(paramId))
 	if err != nil {
 		switch err.(type) {
 		case app.NotFoundErr:
@@ -96,7 +107,7 @@ func createNote(c *gin.Context) {
 		return
 	}
 
-	err = app.GetNotesManager().Save(note)
+	err = app.GetNotesManager().Save(c, note)
 	if err != nil {
 		switch err.(type) {
 		case *app.InputErr:
@@ -129,7 +140,7 @@ func updateNote(c *gin.Context) {
 	}
 
 	note.Id = id
-	err = app.GetNotesManager().Save(note)
+	err = app.GetNotesManager().Save(c, note)
 	if err != nil {
 		switch err.(type) {
 		case app.NotExistsErr:
@@ -148,7 +159,7 @@ func updateNote(c *gin.Context) {
 
 func deleteNote(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
-	err :=  app.GetNotesManager().Delete(uint(id))
+	err :=  app.GetNotesManager().Delete(c, uint(id))
 	if err != nil {
 		switch err.(type) {
 		case app.NotExistsErr:
@@ -159,28 +170,4 @@ func deleteNote(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
-}
-
-
-
-func writeOkResponse(c *gin.Context, data interface{}, status int) {
-	c.JSON(status, gin.H{
-		"data": data,
-	})
-}
-
-func writeErrResponse(c *gin.Context, err error, status int) {
-	c.JSON(status, gin.H{
-		"error": err.Error(),
-	})
-}
-
-func writeMapErrResponse(c *gin.Context, errs map[string]error, status int) {
-	m := make(map[string]string, len(errs))
-	for key, err := range errs {
-		m[key] = err.Error()
-	}
-	c.JSON(status, gin.H{
-		"error": m,
-	})
 }

@@ -1,14 +1,15 @@
-package mysql
+package db
 
 import (
-    "bytes"
-    "database/sql"
-    "fmt"
-    "strconv"
+	"bytes"
+	"database/sql"
+	"fmt"
+	"strconv"
 )
 
 type NoteRow struct {
 	Id uint
+	UserId uint
 	Body string
 }
 
@@ -49,16 +50,16 @@ func (t *NotesTable) SaveTx(e Execer, r Row) error {
 	return t.notesCrud.SaveTx(e, r)
 }
 
-func (t *NotesTable) Exists(id uint) bool {
-	return t.notesSelect.Exists(id)
+func (t *NotesTable) Exists(userId, id uint) bool {
+	return t.notesSelect.Exists(userId, id)
 }
 
-func (t *NotesTable) GetById(id uint) (*NoteRow, error) {
-	return t.notesSelect.GetById(id)
+func (t *NotesTable) GetById(userId, id uint) (*NoteRow, error) {
+	return t.notesSelect.GetById(userId, id)
 }
 
-func (t *NotesTable) GetList(lastId uint, tagIds []uint) ([]*NoteRow, error) {
-	return t.notesSelect.GetList(lastId, tagIds)
+func (t *NotesTable) GetList(userId uint, lastId uint, tagIds []uint) ([]*NoteRow, error) {
+	return t.notesSelect.GetList(userId, lastId, tagIds)
 }
 
 func (t *NotesTable) DeleteTx(c Execer, id uint) error {
@@ -67,7 +68,7 @@ func (t *NotesTable) DeleteTx(c Execer, id uint) error {
 
 func NewNotesCrud() *Crud {
 	return &Crud{
-		db: GetPersistentDB(),
+		db:        GetPersistentDB(),
 		prototype: &NoteRow{},
 		sqlInsert: "INSERT INTO notes(body) VALUES(?)",
 		sqlUpdate: "UPDATE notes SET body = ? WHERE id = ?",
@@ -85,8 +86,8 @@ func NewNoteSelect() *NoteSelect {
 	}
 }
 
-func (t *NoteSelect) GetList(lastId uint, tagIds []uint) ([]*NoteRow, error) {
-	q, b := t.buildQuery(lastId, tagIds)
+func (t *NoteSelect) GetList(userId uint, lastId uint, tagIds []uint) ([]*NoteRow, error) {
+	q, b := t.buildQuery(userId, lastId, tagIds)
 	rows, err := t.db.Query(q, b...)
 	if err != nil {
 		return nil, err
@@ -96,7 +97,7 @@ func (t *NoteSelect) GetList(lastId uint, tagIds []uint) ([]*NoteRow, error) {
 	list := make([]*NoteRow, 0)
 	for rows.Next() {
 		e := &NoteRow{}
-		if err := rows.Scan(&e.Id, &e.Body); err != nil {
+		if err := rows.Scan(&e.Id, &e.UserId, &e.Body); err != nil {
 			return nil, err
 		}
 		list = append(list, e)
@@ -105,7 +106,7 @@ func (t *NoteSelect) GetList(lastId uint, tagIds []uint) ([]*NoteRow, error) {
 	return list, nil
 }
 
-func (t *NoteSelect) buildQuery(lastId uint, tagIds []uint) (string, []interface{}){
+func (t *NoteSelect) buildQuery(userId uint, lastId uint, tagIds []uint) (string, []interface{}){
 	bind := make([]interface{}, 0)
     var query string
 
@@ -146,6 +147,9 @@ func (t *NoteSelect) buildQuery(lastId uint, tagIds []uint) (string, []interface
         buf.WriteString(" WHERE t1.tag_id = ?")
         buf.WriteString(where)
 
+        bind = append(bind, userId)
+        buf.WriteString(" AND n.user_id = ?")
+
         if lastId > 0 {
             buf.WriteString(" AND n.id < ?")
             bind = append(bind, lastId)
@@ -158,15 +162,15 @@ func (t *NoteSelect) buildQuery(lastId uint, tagIds []uint) (string, []interface
 	return query, bind
 }
 
-func (t *NoteSelect) GetById(id uint) (*NoteRow, error) {
+func (t *NoteSelect) GetById(userId, id uint) (*NoteRow, error) {
 	e := &NoteRow{}
-	row := t.db.QueryRow("SELECT * FROM notes WHERE id = ?", id)
+	row := t.db.QueryRow("SELECT * FROM notes WHERE id = ? AND user_id = ?", id, userId)
 	err := row.Scan(&e.Id, &e.Body)
 	return e, err
 }
 
-func (t *NoteSelect) Exists(id uint) bool {
+func (t *NoteSelect) Exists(userId, id uint) bool {
 	var iid int
-	t.db.QueryRow("SELECT id FROM notes WHERE id = ?", id).Scan(&iid)
+	t.db.QueryRow("SELECT id FROM notes WHERE id = ? AND user_id = ?", id, userId).Scan(&iid)
 	return iid > 0
 }

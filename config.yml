@@ -1,0 +1,6 @@
+env: dev
+dbserver: mysql_server
+dbusername: root
+dbpassword: dbpsswrd
+dbname: notes
+httpport: 80

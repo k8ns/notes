@@ -6,7 +6,7 @@ import (
 	"testing"
 	// "github.com/stretchr/testyfy/mock"
 
-	. "notes/pkg/notes"
+	. "github.com/ksopin/notes/pkg/notes"
 )
 
 

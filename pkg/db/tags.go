@@ -1,4 +1,4 @@
-package mysql
+package db
 
 import (
 	"database/sql"
@@ -7,6 +7,7 @@ import (
 
 type TagRow struct {
 	Id uint
+	UserId uint
 	Name string
 }
 
@@ -47,8 +48,8 @@ func (t *TagsTable) GetTagsByIds(tagIds ...uint) ([]*TagRow, error) {
 	return t.tagSelect.GetTagsByIds(tagIds...)
 }
 
-func (t *TagsTable) GetAll() ([]*TagRow, error) {
-	return t.tagSelect.GetAll()
+func (t *TagsTable) GetAll(userId uint) ([]*TagRow, error) {
+	return t.tagSelect.GetAll(userId)
 }
 
 func (t *TagsTable) DeleteTx(c Execer, id uint) error {
@@ -65,7 +66,7 @@ func (t *TagsTable) InsertTx(e Execer, r Row) error {
 
 func NewTagsCrud() *Crud {
 	return &Crud{
-		db: GetPersistentDB(),
+		db:        GetPersistentDB(),
 		prototype: &TagRow{},
 		sqlInsert: "INSERT INTO tags(name) VALUES(?)",
 		sqlUpdate: "UPDATE tags SET name = ? WHERE id = ?",
@@ -86,8 +87,8 @@ func NewTagSelect() *TagSelect {
 	}
 }
 
-func (t *TagSelect) GetAll() ([]*TagRow, error) {
-	return t.rows("SELECT * FROM tags")
+func (t *TagSelect) GetAll(userId uint) ([]*TagRow, error) {
+	return t.rows("SELECT * FROM tags WHERE user_id = ?", userId)
 }
 
 func (t *TagSelect) GetTagsByIds(tagIds ...uint) ([]*TagRow, error) {
@@ -118,7 +119,7 @@ func (t *TagSelect) rows(sql string, binds ...interface{}) ([]*TagRow, error) {
 	for rows.Next() {
 		e := &TagRow{}
 
-		if err = rows.Scan(&e.Id, &e.Name); err != nil {
+		if err = rows.Scan(&e.Id, &e.UserId, &e.Name); err != nil {
 			return nil, err
 		}
 		list = append(list, e)

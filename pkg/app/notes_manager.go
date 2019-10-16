@@ -1,12 +1,11 @@
 package app
 
 import (
+	"context"
 	"errors"
-	"notes/pkg/notes"
-	"notes/pkg/storage"
-	"notes/pkg/storage/mysql"
+	"github.com/ksopin/notes/pkg/auth"
+	"github.com/ksopin/notes/pkg/notes"
 	"sync"
-
 )
 
 
@@ -19,13 +18,13 @@ var (
 )
 
 type NotesManager struct {
-	storage storage.NotesStorage
+	storage *notes.Storage
 	inputFilter *NoteInputFilter
 }
 
 func NewNotesManager() *NotesManager {
 	return &NotesManager{
-		storage: mysql.NewStorage(),
+		storage:     notes.NewStorage(),
 		inputFilter: NewNoteInputFilter(),
 	}
 }
@@ -37,45 +36,76 @@ func GetNotesManager() *NotesManager {
 	return manager
 }
 
-func (m *NotesManager) GetTags() ([]*notes.Tag, error) {
-	return m.storage.GetTags()
+func (m *NotesManager) GetTags(ctx context.Context) ([]*notes.Tag, error) {
+	u, err := auth.GetUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return m.storage.GetTags(u.Id)
 }
 
-func (m *NotesManager) GetNotes(lastId uint, tagIds []uint) ([]*notes.Note, error) {
-	return m.storage.GetNotes(lastId, tagIds)
+func (m *NotesManager) GetNotes(ctx context.Context, lastId uint, tagIds []uint) ([]*notes.Note, error) {
+	u, err := auth.GetUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return m.storage.GetNotes(u.Id, lastId, tagIds)
 }
 
-func (m *NotesManager) Exists(id uint) bool {
-	return m.storage.Exists(id)
-}
+//func (m *NotesManager) Exists(id uint) bool {
+//	u, err := auth.GetUser(ctx)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return m.storage.Exists(u.Id, id)
+//}
 
-func (m *NotesManager) GetNote(id uint) (*notes.Note, error) {
-	if !m.storage.Exists(id) {
+func (m *NotesManager) GetNote(ctx context.Context, id uint) (*notes.Note, error) {
+
+	u, err := auth.GetUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if !m.storage.Exists(u.Id, id) {
 		return nil, NotFoundErr(errors.New("not found"))
 	}
 
-	return m.storage.GetNote(id)
+	return m.storage.GetNote(u.Id, id)
 }
 
-func (m *NotesManager) Save(n *notes.Note) error {
+func (m *NotesManager) Save(ctx context.Context, n *notes.Note) error {
 
-	if n.Id > 0 && !m.storage.Exists(n.Id) {
+	u, err := auth.GetUser(ctx)
+	if err != nil {
+		return nil
+	}
+
+	if n.Id > 0 && !m.storage.Exists(u.Id, n.Id) {
 		return NotExistsErr(errors.New("not exists"))
 	}
 
-	_, err := m.inputFilter.IsValid(n)
+	_, err = m.inputFilter.IsValid(n)
 	if err != nil {
 		return err
 	}
 
+	n.UserId = u.Id
+
 	return m.storage.Save(n)
 }
 
-func (m *NotesManager) Delete(id uint) error {
+func (m *NotesManager) Delete(ctx context.Context, id uint) error {
 
-	if !m.storage.Exists(id) {
+	u, err := auth.GetUser(ctx)
+	if err != nil {
+		return nil
+	}
+
+	if !m.storage.Exists(u.Id, id) {
 		return NotExistsErr(errors.New("not exists"))
 	}
 
-	return m.storage.Delete(id)
+	return m.storage.Delete(u.Id, id)
 }

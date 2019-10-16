@@ -1,4 +1,4 @@
-package mysql
+package db
 
 import (
 	"database/sql"
@@ -69,8 +69,8 @@ func (t *Crud) Delete(id uint) error {
 	return t.DeleteTx(t.db, id)
 }
 
-func (t *Crud) DeleteTx(c Execer, id uint) error {
-	res, err := c.Exec(t.sqlDelete, id)
+func (t *Crud) DeleteTx(e Execer, id uint) error {
+	res, err := e.Exec(t.sqlDelete, id)
 	if err == nil {
 		_, err = res.RowsAffected()
 	}
