@@ -26,6 +26,8 @@ steps:
     commands:
       - sed -i -e 's/{secret_db_username}/${DB_USER}/g' config.prod.yml
       - sed -i -e 's/{secret_db_password}/${DB_PASSWORD}/g' config.prod.yml
+      - echo ${DB_USER}
+      - echo $${DB_USER}
       - cat config.prod.yml
       - docker build -t notes_api -f Dockerfile .
       - docker tag notes_api notes_api:latest
