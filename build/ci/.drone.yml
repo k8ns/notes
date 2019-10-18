@@ -11,7 +11,7 @@ steps:
       GO111MODULE: on
     commands:
       - go test ./pkg/...
-      - go build -o build/notes_api -v cmd/main.go
+      - go build -o dest/notes_api -v cmd/main.go
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
@@ -29,7 +29,7 @@ steps:
       - echo ${DB_USER}
       - echo $${DB_USER}
       - cat config.prod.yml
-      - docker build -t notes_api -f Dockerfile .
+      - docker build -t notes_api -f build/package/Dockerfile .
       - docker tag notes_api notes_api:latest
       - docker tag notes_api notes_api:${DRONE_BUILD_NUMBER}
     volumes:

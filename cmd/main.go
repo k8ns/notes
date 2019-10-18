@@ -16,7 +16,7 @@ type Config struct {
 
 func main() {
 
-	cfg, err := ParseConfig("config.yml")
+	cfg, err := ParseConfig("config/config.yml")
 	if err != nil {
 		panic(err)
 	}
