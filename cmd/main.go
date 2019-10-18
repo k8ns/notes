@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/ksopin/notes/pkg/app"
+	"github.com/ksopin/notes/internal/app"
+	"github.com/ksopin/notes/internal/http"
 	"github.com/ksopin/notes/pkg/db"
-	"github.com/ksopin/notes/pkg/http"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 )

@@ -2,7 +2,7 @@ package http
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/ksopin/notes/pkg/app"
+	"github.com/ksopin/notes/internal/app"
 	"github.com/ksopin/notes/pkg/auth"
 )
 

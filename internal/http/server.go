@@ -3,7 +3,7 @@ package http
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/ksopin/notes/pkg/app"
+	"github.com/ksopin/notes/internal/app"
 )
 
 type Config struct {
