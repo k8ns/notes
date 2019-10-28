@@ -16,9 +16,11 @@ func Run(config *Config, project *app.Config) error {
 		return nil
 	}
 
-	r := gin.Default()
-
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	
 	r.Use(corsMiddleware)
+	r.Use(gin.LoggerWithFormatter(LogFormatter))
 	InitRoutes(r)
 	InitWelcome(r, project)
 	return r.Run(fmt.Sprintf(":%d", config.Port))

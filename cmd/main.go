@@ -6,6 +6,8 @@ import (
 	"github.com/ksopin/notes/pkg/db"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Config struct {
@@ -15,6 +17,8 @@ type Config struct {
 }
 
 func main() {
+
+	log.SetFormatter(&log.JSONFormatter{})
 
 	cfg, err := ParseConfig("config/config.yml")
 	if err != nil {

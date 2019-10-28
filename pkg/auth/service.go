@@ -31,13 +31,13 @@ func New(cfg *Config, db *sql.DB) *Service {
 	}
 }
 
-func (s *Service) Auth(ctx context.Context, c *Credential) (string, error) {
+func (s *Service) Auth(ctx context.Context, c *Credentials) (string, error) {
 	u, err := s.storage.Find(c.Identity)
 	if err != nil {
 		return "", errors.New("denied")
 	}
 
-	if !s.VerifyPassword(c.Credential, u.Password) {
+	if !s.VerifyPassword(c.Credentials, u.Password) {
 		return "", errors.New("denied")
 	}
 

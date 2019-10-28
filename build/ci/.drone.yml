@@ -42,7 +42,7 @@ steps:
     image: docker
     commands:
       - docker stop notes_api || true && docker rm notes_api || true
-      - docker run -d --name notes_api --network notes --log-driver=loki --log-opt loki-url="http://172.19.0.12:3100/api/prom/push" notes_api:latest
+      - docker run -d --name notes_api --network notes --log-driver=loki --log-opt loki-url="http://172.19.0.5:3100/api/prom/push" notes_api:latest
       - docker network connect web notes_api --alias notes_api
     volumes:
       - name: dockersock

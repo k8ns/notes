@@ -1,7 +1,7 @@
 package auth
 
 
-type Credential struct {
+type Credentials struct {
 	Identity string
-	Credential string
+	Credentials string
 }

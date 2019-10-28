@@ -16,6 +16,7 @@ func InitRoutes(engine *gin.Engine) {
 	authorized := engine.Group("/")
 	authorized.Use(authMiddleware)
 	{
+		authorized.GET("/user", userInfo) // 200 || 404 || 500
 		authorized.GET("/tags", tagsList) // 200 || 404 || 500
 		authorized.GET("/notes", notesList) // 200 || 404 || 500
 		authorized.POST("/notes", createNote) // 201 H:Location || 400 || 500
@@ -39,9 +40,18 @@ func InitWelcome(engine *gin.Engine, project *app.Config) {
 }
 
 
+func userInfo(c *gin.Context) {
+	u, err := auth.GetUser(c)
+	if err != nil {
+		writeErrResponse(c, err, http.StatusUnauthorized)
+		return
+	}
+
+	writeOkResponse(c, u, http.StatusOK)
+}
 
 func signIn(c *gin.Context) {
-	creds := &auth.Credential{}
+	creds := &auth.Credentials{}
 	err := c.BindJSON(creds)
 	if err != nil {
 		writeErrResponse(c, err, http.StatusBadRequest)

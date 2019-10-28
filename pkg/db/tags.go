@@ -25,7 +25,7 @@ func (e *TagRow) SetId(id uint) {
 }
 
 func (e *TagRow) InsertArgs() []interface{} {
-	return []interface{}{e.Name}
+	return []interface{}{e.UserId, e.Name}
 }
 
 func (e *TagRow) UpdateArgs() []interface{} {
@@ -69,7 +69,7 @@ func NewTagsCrud() *Crud {
 	return &Crud{
 		db:        GetPersistentDB(),
 		prototype: &TagRow{},
-		sqlInsert: "INSERT INTO tags(name) VALUES(?)",
+		sqlInsert: "INSERT INTO tags(user_id, name) VALUES(?, ?)",
 		sqlUpdate: "UPDATE tags SET name = ? WHERE id = ?",
 		sqlDelete: "DELETE FROM tags WHERE id = ?",
 	}

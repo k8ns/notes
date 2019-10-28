@@ -27,7 +27,7 @@ func (e *NoteRow) SetId(id uint) {
 }
 
 func (e *NoteRow) InsertArgs() []interface{} {
-	return []interface{}{e.Body}
+	return []interface{}{e.UserId, e.Body}
 }
 
 func (e *NoteRow) UpdateArgs() []interface{} {
@@ -71,7 +71,7 @@ func NewNotesCrud() *Crud {
 	return &Crud{
 		db:        GetPersistentDB(),
 		prototype: &NoteRow{},
-		sqlInsert: "INSERT INTO notes(body) VALUES(?)",
+		sqlInsert: "INSERT INTO notes(user_id, body) VALUES(?, ?)",
 		sqlUpdate: "UPDATE notes SET body = ? WHERE id = ?",
 		sqlDelete: "DELETE FROM notes WHERE id = ?",
 	}
