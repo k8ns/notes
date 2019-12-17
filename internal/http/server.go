@@ -4,24 +4,32 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/ksopin/notes/internal/app"
+	"github.com/ksopin/notes/pkg/db"
+	"os"
+	"strings"
 )
 
-type Config struct {
-	Enabled bool
-	Port int
-}
 
-func Run(config *Config, project *app.Config) error {
-	if !config.Enabled {
-		return nil
-	}
 
+func New() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
-	
-	r.Use(corsMiddleware)
+
+	r.Use(CorsMiddleware)
 	r.Use(gin.LoggerWithFormatter(LogFormatter))
 	InitRoutes(r)
-	InitWelcome(r, project)
-	return r.Run(fmt.Sprintf(":%d", config.Port))
+
+	return r
+}
+
+func Run() error {
+	cfg := app.GetConfig(strings.Join([]string{"config/config", os.Getenv("APP_ENV"), "yml"}, "."))
+
+	if !cfg.Http.Enabled {
+		return nil
+	}
+	db.InitConnection(cfg.Db)
+	r := New()
+	InitWelcome(r, cfg.App)
+	return r.Run(fmt.Sprintf(":%d", cfg.Http.Port))
 }

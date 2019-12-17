@@ -13,7 +13,7 @@ var (
 
 func GetAuthService() *auth.Service {
 	serviceOnce.Do(func(){
-		service = auth.New(nil, db.GetPersistentDB())
+		service = auth.New(db.GetPersistentDB())
 	})
 	return service
 }

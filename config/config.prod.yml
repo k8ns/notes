@@ -1,12 +1,11 @@
 app:
   project_name: Notes API
   code: notes-api
-  env: dev
-  version: 1.0.0
+  version: 1.0.1
 db:
-  server: notes_db
-  username: {secret_db_username}
-  password: {secret_db_password}
+  server: dev-db.c41pzugyuh79.eu-west-1.rds.amazonaws.com
+  username: appnotes
+  password: Bo1c6HTgo7YCNig9
   name: notes
 http:
   enabled: true

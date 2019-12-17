@@ -6,6 +6,7 @@ import (
 	"github.com/ksopin/notes/pkg/auth"
 	"github.com/ksopin/notes/pkg/notes"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -26,14 +27,14 @@ func InitRoutes(engine *gin.Engine) {
 	}
 }
 
-func InitWelcome(engine *gin.Engine, project *app.Config) {
+func InitWelcome(engine *gin.Engine, project *app.AppConfig) {
 	engine.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"data": map[string]string{
 				"projectName": project.ProjectName,
 				"code": project.Code,
 				"version": project.Version,
-				"env": project.Env,
+				"env": os.Getenv("APP_ENV"),
 			},
 		})
 	})

@@ -1,0 +1,12 @@
+app:
+  project_name: Notes API
+  code: notes-api
+  version: 1.0.0
+db:
+  server: mysql_server
+  username: root
+  password: dbpsswrd
+  name: notes
+http:
+  enabled: true
+  port: 80
