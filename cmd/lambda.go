@@ -1,9 +1,16 @@
 package main
 
-import ginlambda "github.com/ksopin/notes/internal/lambda"
+import (
+	"github.com/ksopin/notes/internal/config"
+	ginlambda "github.com/ksopin/notes/internal/lambda"
+	"os"
+	"strings"
+)
 
 func main() {
-	err := ginlambda.Run()
+	cfg := config.GetConfig(strings.Join([]string{"config/config", os.Getenv("APP_ENV"), "yml"}, "."))
+
+	err := ginlambda.Run(cfg.App)
 	if err != nil {
 		panic(err)
 	}

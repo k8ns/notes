@@ -27,20 +27,25 @@ type Service struct {
 	adapters []AuthAdapter
 }
 
-func New(db *sql.DB) *Service {
-
+func BuildAdapters(db *sql.DB) []AuthAdapter {
 	adapters := []AuthAdapter{
-		&Storage{db: db},
+		NewDbAdapter(db),
 	}
+	return adapters
+}
 
-	privateKey, err := getPrivateKey("data/key.pem")
+
+// "data/key.pem"
+func New(db *sql.DB, keyPath string) *Service {
+
+	privateKey, err := getPrivateKey(keyPath)
 	if err != nil {
 		panic(err)
 	}
 
 	return &Service{
 		key: privateKey,
-		adapters: adapters,
+		adapters: BuildAdapters(db),
 	}
 }
 

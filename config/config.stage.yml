@@ -1,12 +1,16 @@
 app:
   project_name: Notes API
   code: notes-api
-  version: stage
-db:
-  server: dev-db.c41pzugyuh79.eu-west-1.rds.amazonaws.com
-  username: appnotes
-  password: Bo1c6HTgo7YCNig9
-  name: notes_stage
-http:
-  enabled: true
-  port: 80
+  version: 1.0.3-stage
+  db:
+    server: dev-db.c41pzugyuh79.eu-west-1.rds.amazonaws.com
+    username: appnotes
+    password: Bo1c6HTgo7YCNig9
+    name: notes_stage
+  auth:
+    key_path: data/key.pem
+    notes:
+      table:
+        notes: notes
+        tags: tags
+        notes_tags_links: notes_tags

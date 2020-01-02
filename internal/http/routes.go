@@ -27,7 +27,7 @@ func InitRoutes(engine *gin.Engine) {
 	}
 }
 
-func InitWelcome(engine *gin.Engine, project *app.AppConfig) {
+func InitWelcome(engine *gin.Engine, project *app.Config) {
 	engine.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"data": map[string]string{
@@ -59,7 +59,7 @@ func signIn(c *gin.Context) {
 		return
 	}
 
-	token, err := app.GetAuthService().Auth(c, creds)
+	token, err := app.Get().Auth(c, creds)
 	if err != nil {
 		writeErrResponse(c, err, http.StatusForbidden)
 		return
@@ -68,7 +68,7 @@ func signIn(c *gin.Context) {
 }
 
 func tagsList(c *gin.Context) {
-	list, err := app.GetNotesManager().GetTags(c)
+	list, err := app.Get().GetTags(c)
 	if err != nil {
 		writeErrResponse(c, err, http.StatusBadRequest)
 		return
@@ -91,7 +91,7 @@ func notesList(c *gin.Context) {
 		}
 	}
 
-	list, err := app.GetNotesManager().GetNotes(c, uint(lastId), tagIds)
+	list, err := app.Get().GetNotes(c, uint(lastId), tagIds)
 	if err != nil {
 		writeErrResponse(c, err, http.StatusInternalServerError)
 		return
@@ -102,7 +102,7 @@ func notesList(c *gin.Context) {
 
 func getNote(c *gin.Context) {
 	paramId, _ := strconv.Atoi(c.Param("id"))
-	note, err := app.GetNotesManager().GetNote(c, uint(paramId))
+	note, err := app.Get().GetNote(c, uint(paramId))
 	if err != nil {
 		switch err.(type) {
 		case app.NotFoundErr:
@@ -123,7 +123,7 @@ func createNote(c *gin.Context) {
 		return
 	}
 
-	err = app.GetNotesManager().Save(c, note)
+	err = app.Get().Save(c, note)
 	if err != nil {
 		switch err.(type) {
 		case *app.InputErr:
@@ -156,7 +156,7 @@ func updateNote(c *gin.Context) {
 	}
 
 	note.Id = id
-	err = app.GetNotesManager().Save(c, note)
+	err = app.Get().Save(c, note)
 	if err != nil {
 		switch err.(type) {
 		case app.NotExistsErr:
@@ -175,7 +175,7 @@ func updateNote(c *gin.Context) {
 
 func deleteNote(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
-	err :=  app.GetNotesManager().Delete(c, uint(id))
+	err :=  app.Get().Delete(c, uint(id))
 	if err != nil {
 		switch err.(type) {
 		case app.NotExistsErr:

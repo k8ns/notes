@@ -28,7 +28,7 @@ func authMiddleware(c *gin.Context) {
 		return
 	}
 
-	u, err := app.GetAuthService().VerifySignature(c, token)
+	u, err := app.Get().VerifySignature(c, token)
 	if err != nil {
 		c.AbortWithStatus(403)
 		return

@@ -21,7 +21,15 @@ type Crud struct {
 	sqlUpdate string
 	sqlDelete string
 }
-
+func NewCrud(db *sql.DB, prototype Row, sqlInsert, sqlUpdate, sqlDelete string) *Crud {
+	return &Crud{
+		db: db,
+		prototype: prototype,
+		sqlInsert: sqlInsert,
+		sqlUpdate: sqlUpdate,
+		sqlDelete: sqlUpdate,
+	}
+}
 
 func (t *Crud) Save(r Row) error {
 	return t.SaveTx(t.db, r)

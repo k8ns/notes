@@ -6,17 +6,17 @@ import (
 )
 
 type Storage struct {
-	notesTable *db.NotesTable
-	linksTable *db.NoteTagLinkTable
-	tagsTable *db.TagsTable
+	notesTable *NotesTable
+	linksTable *NoteTagLinkTable
+	tagsTable *TagsTable
 }
 
 
-func NewStorage() *Storage {
+func NewStorage(conn *sql.DB) *Storage {
 	return &Storage{
-		notesTable: db.NewNotesTable(),
-		linksTable: db.NewNoteTagLinkTable(),
-		tagsTable:  db.NewTagsTable(),
+		notesTable: NewNotesTable(conn),
+		linksTable: NewNoteTagLinkTable(conn),
+		tagsTable:  NewTagsTable(conn),
 	}
 }
 
@@ -90,7 +90,7 @@ func (s *Storage) GetNotes(userId uint, lastId uint, tagIds []uint) ([]*Note, er
 	return notes, nil
 }
 
-func (s *Storage) buildTagsMapFromLinks(links []*db.NoteTagLinkRow) (map[uint]*Tag, error) {
+func (s *Storage) buildTagsMapFromLinks(links []*NoteTagLinkRow) (map[uint]*Tag, error) {
 
 	tagIds := make([]uint, 0, len(links))
 	for _, link := range links {
@@ -230,7 +230,7 @@ func (s *Storage) deleteUnusedTags(tx *sql.Tx, tags []*Tag) error {
 }
 
 func (s *Storage) saveNote(tx db.Execer, note *Note) error {
-	noteRow := &db.NoteRow{note.Id, note.UserId, note.Body}
+	noteRow := &NoteRow{note.Id, note.UserId, note.Body}
 	err := s.notesTable.SaveTx(tx, noteRow)
 	if err != nil {
 		return err
@@ -258,7 +258,7 @@ func (s *Storage) insertTagIfNotExists(tx db.Execer, tag *Tag) (uint, error) {
 		return tagRow.Id, nil
 	}
 
-	tagRow = &db.TagRow{Id: tag.Id, Name: tag.Name}
+	tagRow = &TagRow{Id: tag.Id, Name: tag.Name}
 	err = s.tagsTable.InsertTx(tx, tagRow)
 	return tagRow.Id, err
 }
@@ -271,7 +271,7 @@ func (s *Storage) linkTagsToNote(tx db.Execer, note *Note) error {
 	}
 
 	for _, tag := range note.Tags {
-		err = s.linksTable.InsertTx(tx, &db.NoteTagLinkRow{note.Id, tag.Id})
+		err = s.linksTable.InsertTx(tx, &NoteTagLinkRow{note.Id, tag.Id})
 		if err != nil {
 			return err
 		}
